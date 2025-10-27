@@ -181,12 +181,6 @@ int main(int argc, char **argv)
   cout << "Enjoy!" << endl;
 
   // cleanup
-  
-  for (Step* s : recipeSteps->GetReadySteps()) {
-    timer_delete(s->t_id);
-  }
-
-  
   delete recipeSteps;
   delete completedSteps;
   
