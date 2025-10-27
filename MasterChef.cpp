@@ -19,60 +19,60 @@ int completeCount = 0;
 void PrintHelp() // Given
 {
 
-	cout << "Usage: ./MasterChef -i <file>\n\n";
-	cout<<"--------------------------------------------------------------------------\n";
-	cout<<"<file>:    "<<"csv file with Step, Dependencies, Time (m), Description\n";
-	cout<<"--------------------------------------------------------------------------\n";
-	exit(1);
+  cout << "Usage: ./MasterChef -i <file>\n\n";
+  cout<<"--------------------------------------------------------------------------\n";
+  cout<<"<file>:    "<<"csv file with Step, Dependencies, Time (m), Description\n";
+  cout<<"--------------------------------------------------------------------------\n";
+  exit(1);
 }
 
 string ProcessArgs(int argc, char** argv) // Given
 {
-	string result = "";
-	// print help if odd number of args are provided
-	if (argc < 3) {
-		PrintHelp();
-	}
-
-	while (true)
+  string result = "";
+  // print help if odd number of args are provided
+  if (argc < 3) {
+    PrintHelp();
+  }
+  
+  while (true)
+    {
+      const auto opt = getopt(argc, argv, "i:h");
+      
+      if (-1 == opt)
+	break;
+      
+      switch (opt)
 	{
-		const auto opt = getopt(argc, argv, "i:h");
-
-		if (-1 == opt)
-			break;
-
-		switch (opt)
-		{
-		case 'i':
-			result = std::string(optarg);
-			break;
-		case 'h': // -h or --help
-		default:
-			PrintHelp();
-			break;
-		}
+	case 'i':
+	  result = std::string(optarg);
+	  break;
+	case 'h': // -h or --help
+	default:
+	  PrintHelp();
+	  break;
 	}
-
-	return result;
+    }
+  
+  return result;
 }
 
 // Creates and starts a timer given a pointer to the step to start and when it will expire in seconds.
 void makeTimer( Step *timerID, int expire) // Given
 {
-    struct sigevent te;
-    struct itimerspec its;
-
-    /* Set and enable alarm */
-    te.sigev_notify = SIGEV_SIGNAL;
-    te.sigev_signo = SIGRTMIN;
-    te.sigev_value.sival_ptr = timerID;
-    timer_create(CLOCK_REALTIME, &te, &(timerID->t_id));
-
-    its.it_interval.tv_sec = 0;
-    its.it_interval.tv_nsec = 0;
-    its.it_value.tv_sec = expire;
-    its.it_value.tv_nsec = 0;
-    timer_settime(timerID->t_id, 0, &its, NULL);
+  struct sigevent te;
+  struct itimerspec its;
+  
+  /* Set and enable alarm */
+  te.sigev_notify = SIGEV_SIGNAL;
+  te.sigev_signo = SIGRTMIN;
+  te.sigev_value.sival_ptr = timerID;
+  timer_create(CLOCK_REALTIME, &te, &(timerID->t_id));
+  
+  its.it_interval.tv_sec = 0;
+  its.it_interval.tv_nsec = 0;
+  its.it_value.tv_sec = expire;
+  its.it_value.tv_nsec = 0;
+  timer_settime(timerID->t_id, 0, &its, NULL);
 }
 
 // Triggers when the time for the step has elapsed.
@@ -98,7 +98,7 @@ static void timerHandler( int sig, siginfo_t *si, void *uc )
     
     // Now print completion
     comp_item->PrintComplete();
-    }
+  }
   
   /* End Section - 2 */
 }
@@ -164,10 +164,7 @@ int main(int argc, char **argv)
   int totalSteps = recipeSteps->Count();
   
   while (completeCount < totalSteps) {
-    // Query ready steps
     vector<Step*> ready = recipeSteps->GetReadySteps();
-    
-    // Start timers for ready steps (don't start if already running)
     for (Step* s : ready) {
       if (!s->running) {
 	s->running = true;
@@ -175,54 +172,9 @@ int main(int argc, char **argv)
 	makeTimer(s, s->duration);
       }
     }
-    
-    // Sleep briefly to avoid busy spinning and allow signals to be delivered
-    usleep(100 * 1000); // 100 ms
+    usleep(100 * 1000);
   }
   
-  /* End Section - 1 */
-  
-  cout << "Enjoy!" << endl;
-  
-  // cleanup
-
-  // Delete timers for all steps in stepList
-  for (int i = 0; i < recipeSteps->Count(); i++) {
-    Step* s = recipeSteps->GetReadySteps()[i];
-    timer_delete(s->t_id);
-  }
-
-<<<<<<< HEAD
-	// Until all steps have been completed, check if steps are ready to be run and create a timer for them if so
-	
-	int totalSteps = recipeSteps->Count();
-
-    while (completeCount < totalSteps) {
-        // Query ready steps
-        vector<Step*> ready = recipeSteps->GetReadySteps();
-
-        // Start timers for ready steps (don't start if already running)
-        for (Step* s : ready) {
-            if (!s->running) {
-                s->running = true;
-                cout << "Starting Step: " << s->id << " - " << s->description << " (duration " << s->duration << "s)" << endl;
-                makeTimer(s, s->duration);
-            }
-        }
-
-        // Sleep briefly to avoid busy spinning and allow signals to be delivered
-        usleep(100 * 1000); // 100 ms
-    }
-	
-	/* End Section - 1 */
-
-	cout << "Enjoy!" << endl;
-
-	// cleanup
-    delete recipeSteps;
-    delete completedSteps;
-
-    return 0;
   
   delete recipeSteps;
   delete completedSteps;
