@@ -89,15 +89,16 @@ static void timerHandler( int sig, siginfo_t *si, void *uc )
   // Officially complete the step using completedSteps and completeCount
   
   if (comp_item != nullptr) {
+
+    // Now print completion
+    comp_item->PrintComplete();
+   
     // Add to completedSteps first
     completedSteps->push_back(comp_item->id);
     completeCount++;
     
     // Remove dependencies
     raise(SIGUSR1);
-    
-    // Now print completion
-    comp_item->PrintComplete();
   }
   
   /* End Section - 2 */
@@ -164,7 +165,11 @@ int main(int argc, char **argv)
   int totalSteps = recipeSteps->Count();
   
   while (completeCount < totalSteps) {
+    // Query ready steps
     vector<Step*> ready = recipeSteps->GetReadySteps();
+    sort(ready.begin(), ready.end(), [](Step* a, Step* b){ return a->id < b->id; });
+
+    // Start timers for ready steps (don't start if already running)
     for (Step* s : ready) {
       if (!s->running) {
 	s->running = true;
@@ -172,9 +177,21 @@ int main(int argc, char **argv)
 	makeTimer(s, s->duration);
       }
     }
-    usleep(100 * 1000);
+    // Sleep briefly to avoid busy spinning and allow signals to be delivered
+    usleep(100 * 1000); 
   }
+
+  /* End Section - 1 */
+
+  cout << "Enjoy!" << endl;
+
+  // cleanup
   
+  vector<Step*> allSteps = recipeSteps->GetReadySteps();
+  for (Step* s : allSteps) {
+    timer_delete(s->t_id);
+  }
+
   
   delete recipeSteps;
   delete completedSteps;
