@@ -181,8 +181,9 @@ int main(int argc, char **argv)
   cout << "Enjoy!" << endl;
 
   // cleanup
-  delete recipeSteps;
-  delete completedSteps;
+  
+  //  delete recipeSteps;
+  //delete completedSteps;
   
   return 0;
 }
