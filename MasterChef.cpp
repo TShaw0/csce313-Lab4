@@ -223,11 +223,9 @@ int main(int argc, char **argv)
     delete completedSteps;
 
     return 0;
-=======
   
   delete recipeSteps;
   delete completedSteps;
   
   return 0;
->>>>>>> b7ba33b (62)
 }
