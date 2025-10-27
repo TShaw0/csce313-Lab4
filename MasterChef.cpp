@@ -90,15 +90,11 @@ static void timerHandler( int sig, siginfo_t *si, void *uc )
   
   if (comp_item != nullptr) {
 
-    // Now print completion
-    comp_item->PrintComplete();
-   
-    // Add to completedSteps first
-    completedSteps->push_back(comp_item->id);
+    completedSteps->push_back(comp_item->id); // mark completed first
     completeCount++;
-    
-    // Remove dependencies
-    raise(SIGUSR1);
+    comp_item->PrintComplete();                 // then print completion
+    raise(SIGUSR1);                             // then remove dependencies
+
   }
   
   /* End Section - 2 */
@@ -186,7 +182,7 @@ int main(int argc, char **argv)
 
   // cleanup
   
-  for (Step* s : recipeSteps->stepList) {
+  for (Step* s : recipeSteps->GetReadySteps()) {
     timer_delete(s->t_id);
   }
 
