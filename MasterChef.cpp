@@ -82,87 +82,117 @@ void makeTimer( Step *timerID, int expire) // Given
 // TO COMPLETE Section 2
 static void timerHandler( int sig, siginfo_t *si, void *uc )
 {
-	// Retrieve timer pointer from the si->si_value
-    Step* comp_item = (Step*)si->si_value.sival_ptr;
-
-	/* TODO This Section - 2 */
-	// Officially complete the step using completedSteps and completeCount
-
-	if (comp_item != nullptr) {
-        // Print that it completed (matches starter instructions)
-        comp_item->PrintComplete();
-
-        // Add to completed list for bookkeeping / dependency removal
-        completedSteps->push_back(comp_item->id);
-
-        // Increase global completed count
-        completeCount++;
-
-        // Trigger the dependency removal handler (will run before raise returns)
-        raise(SIGUSR1);
+  // Retrieve timer pointer from the si->si_value
+  Step* comp_item = (Step*)si->si_value.sival_ptr;
+  
+  /* TODO This Section - 2 */
+  // Officially complete the step using completedSteps and completeCount
+  
+  if (comp_item != nullptr) {
+    // Add to completedSteps first
+    completedSteps->push_back(comp_item->id);
+    completeCount++;
+    
+    // Remove dependencies
+    raise(SIGUSR1);
+    
+    // Now print completion
+    comp_item->PrintComplete();
     }
-
-
-	// Ready to remove that dependency, call the trigger for the appropriate handler
-	/* End Section - 2 */
+  
+  /* End Section - 2 */
 }
 
 // Removes the copmleted steps from the dependency list of the step list.
 // Utilize the completedSteps vector and the RemoveDependency method.
 // To Complete - Section 3
 void RemoveDepHandler(int sig) {
-	/* TODO This Section - 3 */
-	// Foreach step that has been completed since last run, remove it as a dependency
-
-	if (completedSteps == nullptr || recipeSteps == nullptr) return;
-
-    // For each completed id, remove it from other steps' dependency lists
-    for (int id : *completedSteps) {
-        recipeSteps->RemoveDependency(id);
-    }
-
-    // We've done the removal work for these completed items; clear the list
-    completedSteps->clear();
-
-	/* End Section - 3 */
+  /* TODO This Section - 3 */
+  // Foreach step that has been completed since last run, remove it as a dependency
+  
+  if (completedSteps == nullptr || recipeSteps == nullptr) return;
+  
+  for (int id : *completedSteps) {
+    recipeSteps->RemoveDependency(id);
+  }
+  
+  // Clear completedSteps for next round
+  completedSteps->clear();
+  
+  /* End Section - 3 */
 }
 
 // Associate the signals to the signal handlers as appropriate
 // Continuously check what steps are ready to be run, and start timers for them with makeTimer()
 // run until all steps are done.
 // To Complete - Section 1
+
 int main(int argc, char **argv)
 {
-	string input_file = ProcessArgs(argc, argv);
-	if(input_file.empty()) {
-		exit(1);
-	}
-	
-	// Initialize global variables
-	completedSteps = new vector<int>();
-	recipeSteps = new StepList(input_file);
-
-    /* Set up signal handler. */
-    struct sigaction sa;
-    sa.sa_flags = SA_SIGINFO;
-    sa.sa_sigaction = timerHandler;
-    sigemptyset(&sa.sa_mask);
-
-	/* TODO This Section - 1 */
-	// Associate the signal SIGRTMIN with the sa using the sigaction function
-	// Associate the appropriate handler with the SIGUSR1 signal, for removing dependencies
-	
-	if (sigaction(SIGRTMIN, &sa, NULL) == -1) {
-        perror("sigaction");
-        exit(1);
+  string input_file = ProcessArgs(argc, argv);
+  if(input_file.empty()) {
+    exit(1);
+  }
+  
+  // Initialize global variables
+  completedSteps = new vector<int>();
+  recipeSteps = new StepList(input_file);
+  
+  /* Set up signal handler. */
+  struct sigaction sa;
+  sa.sa_flags = SA_SIGINFO;
+  sa.sa_sigaction = timerHandler;
+  sigemptyset(&sa.sa_mask);
+  
+  /* TODO This Section - 1 */
+  // Associate the signal SIGRTMIN with the sa using the sigaction function
+  // Associate the appropriate handler with the SIGUSR1 signal, for removing dependencies
+  
+  if (sigaction(SIGRTMIN, &sa, NULL) == -1) {
+    perror("sigaction");
+    exit(1);
+  }
+  
+  // Use the simple signal() API for SIGUSR1 as requested by the starter
+  if (signal(SIGUSR1, RemoveDepHandler) == SIG_ERR) {
+    perror("signal");
+    exit(1);
+  }
+  
+  // Until all steps have been completed, check if steps are ready to be run and create a timer for them if so
+  
+  int totalSteps = recipeSteps->Count();
+  
+  while (completeCount < totalSteps) {
+    // Query ready steps
+    vector<Step*> ready = recipeSteps->GetReadySteps();
+    
+    // Start timers for ready steps (don't start if already running)
+    for (Step* s : ready) {
+      if (!s->running) {
+	s->running = true;
+	cout << "Starting Step: " << s->id << " - " << s->description << " (duration " << s->duration << "s)" << endl;
+	makeTimer(s, s->duration);
+      }
     }
+    
+    // Sleep briefly to avoid busy spinning and allow signals to be delivered
+    usleep(100 * 1000); // 100 ms
+  }
+  
+  /* End Section - 1 */
+  
+  cout << "Enjoy!" << endl;
+  
+  // cleanup
 
-    // Use the simple signal() API for SIGUSR1 as requested by the starter
-    if (signal(SIGUSR1, RemoveDepHandler) == SIG_ERR) {
-        perror("signal");
-        exit(1);
-    }
+  // Delete timers for all steps in stepList
+  for (int i = 0; i < recipeSteps->Count(); i++) {
+    Step* s = recipeSteps->GetReadySteps()[i];
+    timer_delete(s->t_id);
+  }
 
+<<<<<<< HEAD
 	// Until all steps have been completed, check if steps are ready to be run and create a timer for them if so
 	
 	int totalSteps = recipeSteps->Count();
@@ -193,4 +223,11 @@ int main(int argc, char **argv)
     delete completedSteps;
 
     return 0;
+=======
+  
+  delete recipeSteps;
+  delete completedSteps;
+  
+  return 0;
+>>>>>>> b7ba33b (62)
 }
