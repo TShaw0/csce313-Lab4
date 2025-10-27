@@ -173,7 +173,6 @@ int main(int argc, char **argv)
     for (Step* s : ready) {
       if (!s->running) {
 	s->running = true;
-	cout << "Starting Step: " << s->id << " - " << s->description << " (duration " << s->duration << "s)" << endl;
 	makeTimer(s, s->duration);
       }
     }
@@ -187,8 +186,7 @@ int main(int argc, char **argv)
 
   // cleanup
   
-  vector<Step*> allSteps = recipeSteps->GetReadySteps();
-  for (Step* s : allSteps) {
+  for (Step* s : recipeSteps->stepList) {
     timer_delete(s->t_id);
   }
 
